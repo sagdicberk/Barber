@@ -1,10 +1,13 @@
 package com.example.barber_appointment.controller;
 
 import com.example.barber_appointment.business.abstracts.AppointmentService;
+import com.example.barber_appointment.business.abstracts.AuthenticationService;
+import com.example.barber_appointment.business.abstracts.UserService;
 import com.example.barber_appointment.model.Appointment;
 import com.example.barber_appointment.model.User;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -16,45 +19,55 @@ public class AppointmentController {
 
     private final AppointmentService appointmentService;
 
+    private final UserService userService;
+
+    private final AuthenticationService authenticationService;
+
+    // Helper function
+    // - Get User From token -/
+    private User getUserFromToken(String token){
+        String phoneNumber = authenticationService.getPhoneNumberFromToken(token);
+        return userService.FindByPhoneNumber(phoneNumber);
+    }
+
+
     // Randevu talebi gönderme
     @PostMapping("/request")
-    public ResponseEntity<String> sendAppointmentRequest(@RequestBody Appointment appointment, @RequestParam User customer) {
+    public ResponseEntity<String> sendAppointmentRequest(@RequestBody Appointment appointment, @RequestParam String token) {
+        User customer = getUserFromToken(token);
         appointmentService.sendAppointmentRequest(appointment, customer);
         return ResponseEntity.ok("Randevu talebi başarıyla gönderildi.");
     }
 
     // Kullanıcının tüm randevularını alma
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Appointment>> getAppointments(@PathVariable Long userId) {
-        User user = new User(); // Kullanıcıyı userId ile bulmanız gerekebilir
-        user.setId(userId);
-        List<Appointment> appointments = appointmentService.getAppointments(user);
+    @GetMapping("/user")
+    public ResponseEntity<List<Appointment>> getAppointments(@RequestParam String token) {
+        User customer = getUserFromToken(token);
+        List<Appointment> appointments = appointmentService.getAppointments(customer);
         return ResponseEntity.ok(appointments);
     }
 
     // Kullanıcının aktif randevularını alma
-    @GetMapping("/user/{userId}/active")
-    public ResponseEntity<List<Appointment>> getActiveAppointments(@PathVariable Long userId) {
-        User user = new User(); // Kullanıcıyı userId ile bulmanız gerekebilir
-        user.setId(userId);
-        List<Appointment> appointments = appointmentService.getActiveAppointments(user);
+    @GetMapping("/user/active")
+    public ResponseEntity<List<Appointment>> getActiveAppointments(@RequestParam String token) {
+        User customer = getUserFromToken(token);
+        List<Appointment> appointments = appointmentService.getActiveAppointments(customer);
         return ResponseEntity.ok(appointments);
     }
 
     // Berberin günlük randevularını alma
-    @GetMapping("/barber/{barberId}/daily")
-    public ResponseEntity<List<Appointment>> getMyDailyAppointments(@PathVariable Long barberId) {
-        User barber = new User(); // Berberi barberId ile bulmanız gerekebilir
-        barber.setId(barberId);
+    @PreAuthorize("hasRole('BARBER')")
+    @GetMapping("/barber/daily")
+    public ResponseEntity<List<Appointment>> getMyDailyAppointments(@RequestParam String token) {
+        User barber = getUserFromToken(token);
         List<Appointment> appointments = appointmentService.getMyDailyAppointments(barber);
         return ResponseEntity.ok(appointments);
     }
 
     // Berberin tüm randevularını alma
-    @GetMapping("/barber/{barberId}/all")
-    public ResponseEntity<List<Appointment>> getMyAllAppointments(@PathVariable Long barberId) {
-        User barber = new User(); // Berberi barberId ile bulmanız gerekebilir
-        barber.setId(barberId);
+    @GetMapping("/barber/all")
+    public ResponseEntity<List<Appointment>> getMyAllAppointments(@RequestParam String token) {
+        User barber = getUserFromToken(token);
         List<Appointment> appointments = appointmentService.getMyAllAppointments(barber);
         return ResponseEntity.ok(appointments);
     }
@@ -74,6 +87,7 @@ public class AppointmentController {
     }
 
     // Tüm randevuları alma (SuperBarber)
+    @PreAuthorize("hasRole('SUPERBARBER')")
     @GetMapping("/all")
     public ResponseEntity<List<Appointment>> getAllAppointments() {
         List<Appointment> appointments = appointmentService.getAllAppointments();

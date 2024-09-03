@@ -6,6 +6,7 @@ import com.twilio.rest.api.v2010.account.Message;
 import com.twilio.rest.verify.v2.service.Verification;
 import com.twilio.rest.verify.v2.service.VerificationCheck;
 import com.twilio.type.PhoneNumber;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -23,7 +24,8 @@ public class SmsManager implements SmsService {
     @Value("${twilio.verifyServiceSid}")
     private String verifyServiceSid;
 
-    public SmsManager() {
+    @PostConstruct
+    public void init() {
         Twilio.init(accountSid, authToken);
     }
 
