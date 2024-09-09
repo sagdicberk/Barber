@@ -18,39 +18,38 @@ import java.util.List;
 public class AppointmentController {
 
     private final AppointmentService appointmentService;
-
     private final UserService userService;
-
     private final AuthenticationService authenticationService;
 
     // Helper function
-    // - Get User From token -/
-    private User getUserFromToken(String token){
+    // - Get User From token in Authorization header -/
+    private User getUserFromToken(String authHeader){
+        // Token format: "Bearer <token>"
+        String token = authHeader.substring(7);
         String phoneNumber = authenticationService.getPhoneNumberFromToken(token);
         return userService.FindByPhoneNumber(phoneNumber);
     }
 
-
     // Randevu talebi gönderme
     @PostMapping("/request")
-    public ResponseEntity<String> sendAppointmentRequest(@RequestBody Appointment appointment, @RequestParam String token) {
-        User customer = getUserFromToken(token);
+    public ResponseEntity<String> sendAppointmentRequest(@RequestBody Appointment appointment, @RequestHeader("Authorization") String authHeader) {
+        User customer = getUserFromToken(authHeader);
         appointmentService.sendAppointmentRequest(appointment, customer);
         return ResponseEntity.ok("Randevu talebi başarıyla gönderildi.");
     }
 
     // Kullanıcının tüm randevularını alma
     @GetMapping("/user")
-    public ResponseEntity<List<Appointment>> getAppointments(@RequestParam String token) {
-        User customer = getUserFromToken(token);
+    public ResponseEntity<List<Appointment>> getAppointments(@RequestHeader("Authorization") String authHeader) {
+        User customer = getUserFromToken(authHeader);
         List<Appointment> appointments = appointmentService.getAppointments(customer);
         return ResponseEntity.ok(appointments);
     }
 
     // Kullanıcının aktif randevularını alma
     @GetMapping("/user/active")
-    public ResponseEntity<List<Appointment>> getActiveAppointments(@RequestParam String token) {
-        User customer = getUserFromToken(token);
+    public ResponseEntity<List<Appointment>> getActiveAppointments(@RequestHeader("Authorization") String authHeader) {
+        User customer = getUserFromToken(authHeader);
         List<Appointment> appointments = appointmentService.getActiveAppointments(customer);
         return ResponseEntity.ok(appointments);
     }
@@ -58,16 +57,16 @@ public class AppointmentController {
     // Berberin günlük randevularını alma
     @PreAuthorize("hasRole('BARBER')")
     @GetMapping("/barber/daily")
-    public ResponseEntity<List<Appointment>> getMyDailyAppointments(@RequestParam String token) {
-        User barber = getUserFromToken(token);
+    public ResponseEntity<List<Appointment>> getMyDailyAppointments(@RequestHeader("Authorization") String authHeader) {
+        User barber = getUserFromToken(authHeader);
         List<Appointment> appointments = appointmentService.getMyDailyAppointments(barber);
         return ResponseEntity.ok(appointments);
     }
 
     // Berberin tüm randevularını alma
     @GetMapping("/barber/all")
-    public ResponseEntity<List<Appointment>> getMyAllAppointments(@RequestParam String token) {
-        User barber = getUserFromToken(token);
+    public ResponseEntity<List<Appointment>> getMyAllAppointments(@RequestHeader("Authorization") String authHeader) {
+        User barber = getUserFromToken(authHeader);
         List<Appointment> appointments = appointmentService.getMyAllAppointments(barber);
         return ResponseEntity.ok(appointments);
     }
@@ -100,6 +99,5 @@ public class AppointmentController {
         List<Appointment> appointments = appointmentService.getActiveAppointments();
         return ResponseEntity.ok(appointments);
     }
-
 
 }
